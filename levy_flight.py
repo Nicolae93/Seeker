@@ -25,81 +25,65 @@ def levy_flight_steps(beta, n=100000, m=2):
 
     return z
 
-def levy_flight(function=fn.eggholder, start_coordinates=[0,0], iterations=50, 
-                bounds=[(-512, 512), (-512, 512)],scale_step = 0.1,show_plots=True, beta=1.5):
+def levy_flight(function=fn.hart3, start_coordinates=[0.5,0.5,0.5], iterations=3, 
+                bounds=[0, 1],scale_step = 0.1, show_plots=False, beta=1.5, dim=3):
     n = iterations;
-    
-    #creating two array for containing x and y coordinate
-    #of size equals to the number of size and filled up with 0's
-    x = np.zeros(n)
-    y = np.zeros(n)
-    #set start coordinates
-    x[0], y[0] = start_coordinates[0], start_coordinates[1]
+    coordinates = []
+    for i in range(dim):
+        coordinates.append(np.zeros(n))
+        #set start coordinates
+        coordinates[i][0] = start_coordinates[i]
+
     #call levy steps
-    d = levy_flight_steps(beta=beta, n=iterations)   
+    d = levy_flight_steps(beta=beta, n=iterations, m=dim) 
     # set minimum
     minimum = function(start_coordinates)
     best_point = start_coordinates
     
-    count = 0
-    iter_to_best = [0]
     f_points = [minimum]
-    
-    count = 0
     val_i = 0
     
-    #print('n',n)
     for i in range(1,n): # use those steps 
-        x_bound_check = bounds[0][0]<x[i-1]+d[val_i]<bounds[0][1]
-        y_bound_check = bounds[1][0]<y[i-1]+d[val_i+1]<bounds[1][1]
-        if x_bound_check and y_bound_check: # check bounds
-            count += 1    
-            x[i]= x[i-1]+d[val_i]
-            y[i]= y[i-1]+d[val_i+1]
-        else:
-            '''
-            x[i]= x[i-1]
-            y[i]= y[i-1]
-            '''
-            if not x_bound_check:
-                #print('x',x[i-1]+d[val_i]*scale_step)
-                x[i]= x[i-1]-d[val_i]*scale_step
-                x_bound_check = bounds[0][0]<x[i]<bounds[0][1]
-            if not y_bound_check:
-                #print('y',y[i-1]+d[val_i+1]*scale_step)
-                y[i]= y[i-1]-d[val_i+1]*scale_step
-                y_bound_check = bounds[0][0]<y[i]<bounds[0][1]
-            #if still not between bounds, stay in same place    
-            if not x_bound_check or not y_bound_check:   
-                #print('out of bounds')
-                x[i]= x[i-1]
-                y[i]= y[i-1]
-            else: count += 1   
-            
+        coordinates_bound_check = []
+        # set next step without careing if is out of bound
+        for j in range(dim):
+            coordinates[j][i] = coordinates[j][i-1]+d[val_i+j]*scale_step
+            coordinates_bound_check.append(bounds[0]<coordinates[j][i-1]+d[val_i+j]*scale_step<bounds[1])
+        # take care of the out of bound coordinates    
+        if not all(coordinates_bound_check): 
+            # if the step is too long try to make a smaller step
+            for j in range(dim):
+                if not coordinates_bound_check[j]:
+                    coordinates[j][i] = coordinates[j][i-1]+d[val_i+j]*scale_step**2
+                    coordinates_bound_check[j] = bounds[0]< coordinates[j][i] <bounds[1]  
+                      
+            #if still not between bounds, stay in same place          
+            if not all(coordinates_bound_check):
+                for j in range(dim):
+                    coordinates[j][i] = coordinates[j][i-1]
+        val_i = val_i + 2
+        
         #check if current point is better than current minimum 
-        curr_point = [x[i],y[i]]
+        curr_point = []
+        for j in range(dim):
+            curr_point.append(coordinates[j][i])
         f_curr_point = function(curr_point)
         if  f_curr_point <= minimum:
             f_points.append(f_curr_point)
-            iter_to_best.append(count)
             minimum = f_curr_point
             best_point = curr_point    
-        val_i = val_i + 2
-           
-    #print('count',count)    
-    #print('minimum',minimum)
-    #insert last iteration f_point
-    iter_to_best.append(n)
+        
+    
     f_points.append(f_points[-1])
     #create an optResult object
-    result = optimize.OptimizeResult(x=best_point, fun=minimum, iter_to_best=iter_to_best, f_points=f_points)    
+    result = optimize.OptimizeResult(x=best_point,fun=minimum,f_points=f_points)    
     #print('true iterations: ', count)
     if show_plots:
         # plotting stuff:
         pylab.title("Levi-Flight ($n = " + str(n) + "$ steps)")
-        pylab.plot(x, y,'-',lw=0.5)
+        pylab.plot(coordinates[0],coordinates[1],'-',lw=0.5)
         #pylab.savefig("Levi-Flight"+str(n)+".png",bbox_inches="tight",dpi=600)
         pylab.show()    
     return result    
 
-#levy_flight()
+#levy_flight(function=fn.goldstein, start_coordinates=[0,0], iterations=10, bounds=[-2, 2], show_plots=True, dim=2)

@@ -3,6 +3,7 @@ import levy_flight as lf
 import numpy as np
 import pylab
 import agent
+import time
 
 def seeker_algorithm():
     # configurations
@@ -14,12 +15,13 @@ def seeker_algorithm():
     n_agents = cf.get_n_agents()
     scale_step = cf.get_scale_step()
     beta = cf.get_beta()
+    dim = cf.get_dimension()
     #creating two array for containing x and y coordinate
     #of size equals to the number of size and filled up with 0's
     x = np.zeros(n_agents)
     y = np.zeros(n_agents)
     #BOUNDS 
-    bounds = [(min_domain, max_domain), (min_domain, max_domain)]
+    bounds = [min_domain, max_domain]
     #initial evaluation
     feval = n_agents
     agents = [] 
@@ -27,12 +29,12 @@ def seeker_algorithm():
     best_points = []   
     #random distribution on fitness function
     for i in range(n_agents):
-        a = agent.Agent(function=function,bounds=bounds,my_id=i)
+        a = agent.Agent(function=function,bounds=bounds,my_id=i,dim=dim)
         agents.append(a)     
         best_fitness.append(a.get_initial_fitness())
         best_points.append(a.get_initial_position())
         #plotting stuff
-        x[i],y[i] = a.get_initial_position()[0], a.get_initial_position()[1]              
+        #x[i],y[i] = a.get_initial_position()[0], a.get_initial_position()[1]              
     
     def print_info():
         for a in agents:
@@ -61,7 +63,7 @@ def seeker_algorithm():
     for i in range(n_agents):
         feval += n
         result = lf.levy_flight(function=function, start_coordinates=agents[i].get_best_position(),
-                       iterations=n,bounds=bounds,show_plots=False, scale_step=scale_step,beta=beta)
+                       iterations=n,bounds=bounds,show_plots=False, scale_step=scale_step,beta=beta, dim=dim)
         if result.fun < best_fitness[i]: # if there are some improvements in the levy walk, update
             # update best fitness
             agents[i].set_best_fitness(result.fun)
@@ -109,7 +111,7 @@ def seeker_algorithm():
         for i in range(n_agents):
             feval += n
             result = lf.levy_flight(function=function, start_coordinates=agents[i].get_best_position(),
-                           iterations=n,bounds=bounds,show_plots=False, scale_step=scale_step, beta=beta)
+                           iterations=n,bounds=bounds,show_plots=False, scale_step=scale_step, beta=beta,dim=dim)
             
             if result.fun < best_fitness[i]: # if there are some improvements in the levy walk, update
                 # update best fitness
@@ -132,7 +134,7 @@ def seeker_algorithm():
         
         #decrease scale_step by 10%
         scale_step = scale_step - scale_step*0.1
-        #print('scale_step ',scale_step)
+        #print(scale_step)
         
         if show_plots: 
             # plotting stuff:
@@ -151,4 +153,6 @@ def seeker_algorithm():
     
     return 1
 
+start_time = time.time()
 seeker_algorithm()
+print("--- %s seconds ---" % (time.time() - start_time))
