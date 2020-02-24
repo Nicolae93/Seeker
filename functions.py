@@ -110,6 +110,6 @@ setattr(rosen, 'x', [1,1])
 setattr(hart3,'x',[0.114614,0.555649,0.852547])
 
 if __name__ == '__main__':
-    a = np.array([0.114614,0.555649,0.852547])
-    print (hart3(a))
+    a = np.array([0,0,0,0,0,0,0,0,0,0])
+    print (rastrigin(a))
     
