@@ -1,6 +1,8 @@
 import numpy as np
 
 # FUNCTIONS
+#def hart6(xx):
+    
 def hart3(xx):
     alpha = np.array([1.0, 1.2, 3.0, 3.2]).T;
     A = np.array([[3.0, 10, 30],[0.1, 10, 35],[3.0, 10, 30],[0.1, 10, 35]])
@@ -64,10 +66,7 @@ def michalewicz(array):#for the number of Dimension is 2
         sum = sum + np.sin(x) * np.sin((i * (x**2) )/np.pi)**(2*m)
     fitness = -sum
     return fitness
-'''
-def rosen(array):
-    return (1 - array[0])**2 + 100 * (array[1] - array[0]**2)**2
-'''
+
 def rosen(xx):
     d = len(xx);
     summa = 0;
@@ -110,6 +109,6 @@ setattr(rosen, 'x', [1,1])
 setattr(hart3,'x',[0.114614,0.555649,0.852547])
 
 if __name__ == '__main__':
-    a = np.array([0,0,0,0,0,0,0,0,0,0])
-    print (rastrigin(a))
+    a = np.array([-0.7763607074182137, 1.6318664082985035])
+    print (goldstein(a))
     

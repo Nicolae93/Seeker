@@ -1,15 +1,15 @@
 import functions as fn
 
 class Config:
-    __Function = fn.sphere
+    __Function = fn.goldstein
     __GlobalMin = __Function.min
     __MinDomain = __Function.domain[0] # variable lower limit
     __MaxDomain = __Function.domain[1] # variable upper limit
     __Beta = 1.5 # parameter for Levy flight
-    __Dimension = 10 # The number of dimension
+    __Dimension = 2 # The number of dimension
     __Show_Plots = False
     __Iteration = 2
-    __Agents = 128
+    __Agents = 16
     __ScaleStep = 1
     
     @classmethod

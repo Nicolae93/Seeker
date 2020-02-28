@@ -57,18 +57,28 @@ def seeker_algorithm():
             x[i],y[i] = a.get_initial_position()[0], a.get_initial_position()[1]            
     sort_agents()
     
+    #print_info()
+    
     #plot
     if show_plots: 
         plots()
    
     count = 0    
     success = False
-    #n_factors = number_factors(n_agents)
+    n_factors = number_factors(n_agents)
+    #seek algorithm
     while feval < 200000:         
         for i in range(n_agents):
-            feval += n
-            result = lf.levy_flight(function=function, start_coordinates=agents[i].get_best_position(),
-                           iterations=n,bounds=bounds,show_plots=False, scale_step=scale_step, beta=beta,dim=dim)
+            #diversification
+            if count < n_factors:
+                feval += n+10
+                result = lf.levy_flight(function=function, start_coordinates=agents[i].get_best_position(),
+                           iterations=n+10,bounds=bounds,show_plots=False, scale_step=scale_step, beta=beta,dim=dim)
+            #intersification    
+            else:   
+                feval += n
+                result = lf.levy_flight(function=function, start_coordinates=agents[i].get_best_position(),
+                               iterations=n,bounds=bounds,show_plots=False, scale_step=scale_step, beta=beta,dim=dim)
             
             if result.fun < agents[i].get_best_fitness(): # if there are some improvements in the levy walk, update
                 # update best fitness
@@ -86,11 +96,27 @@ def seeker_algorithm():
         sort_agents() 
         
         #change position for help
-        for i in range(0,int(len(agents)/2)):
-            agents[-(i+1)].set_best_position(agents[i].get_best_position()) 
-            agents[-(i+1)].set_best_fitness(agents[i].get_best_fitness())    
-        sort_agents()
+        if count < n_factors:
+            #change position for help
+            for i in range(0,int(len(agents)/2)):
+                agents[-(i+1)].set_best_position(agents[i].get_best_position()) 
+                agents[-(i+1)].set_best_fitness(agents[i].get_best_fitness())    
+            sort_agents()
+        else:
+            for i in range(1, len(agents)):
+                agents[(i)].set_best_position(agents[0].get_best_position()) 
+                agents[(i)].set_best_fitness(agents[0].get_best_fitness())   
+
+        #decrease scale_step by 10%
+        scale_step = scale_step - scale_step*0.1
         
+        #plot
+        if show_plots: 
+            plots()  
+        
+        if success:
+            break   
+        count += 1
         #decrease scale_step by 10%
         scale_step = scale_step - scale_step*0.1
         
@@ -116,7 +142,8 @@ c=0
 fitness_list = []
 for i in range(r):
     seek = seeker_algorithm()
-    fitness_list.append(seek[0])
+    feval = seek[0]
+    fitness_list.append(feval)
     if seek[1]:
         c += 1
         
