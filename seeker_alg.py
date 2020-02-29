@@ -1,6 +1,7 @@
 from config import Config as cf
 import levy_flight as lf
 import numpy as np
+import threading 
 import pylab
 import agent
 import time
@@ -115,38 +116,61 @@ def seeker_algorithm():
             plots()  
         
         if success:
-            break   
-        count += 1
-        #decrease scale_step by 10%
-        scale_step = scale_step - scale_step*0.1
-        
-        #plot
-        if show_plots: 
-            plots()  
-        
-        if success:
-            break   
-        count += 1
-        
-           
+            break
+        #update count
+        count += 1   
+    
+    print('groupings ',n_factors)
+    print('count     ',count)    
     print(agents[0].get_best_fitness(),agents[0].get_best_position())  
     print('total feval: ',feval)
     print('global min: ',global_min)
     print('x         : ',function.x)
     
     return [feval, success]
+      
 
-start_time = time.time()
-r = 30
-c=0
-fitness_list = []
-for i in range(r):
-    seek = seeker_algorithm()
-    feval = seek[0]
-    fitness_list.append(feval)
-    if seek[1]:
-        c += 1
+class myThread (threading.Thread):
+   def __init__(self, threadID):
+      threading.Thread.__init__(self)
+      self.threadID = threadID
+   def run(self):
+      #print("Starting " + self.name)
+      global s       
+      #start alg
+      seek = seeker_algorithm()
+      # Get lock to synchronize threads
+      threadLock.acquire()
+      feval = seek[0]
+      fitness_list.append(feval)
+      if seek[1]:
+          s += 1
+      #end alg    
+          
+      # Free lock to release next thread
+      threadLock.release()    
+      print()    
         
+start_time = time.time()      
+threadLock = threading.Lock()
+threads = []
+s = 0 
+fitness_list = []
+
+t = 10
+for i in range(t):
+    # Create new threads
+    thread = myThread(i)
+    # Start new Threads
+    thread.start()
+    # Add threads to thread list
+    threads.append(thread)
+
+# Wait for all threads to complete
+for th in threads:
+    th.join()
+#print("Exiting Main Thread\n")          
+    
 print('\nmean feval ',np.mean(fitness_list))   
-print('percentage success '+str((c/r)*100)+'%')
+print('percentage success '+str((s/t)*100)+'%')
 print("--- %s seconds ---" % (time.time() - start_time))
