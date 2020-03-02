@@ -1,16 +1,22 @@
 import functions as fn
 
 class Config:
-    __Function = fn.rastrigin
+    __Function = fn.goldstein
+    __Dimension = 2 # The number of dimension
     __GlobalMin = __Function.min
     __MinDomain = __Function.domain[0] # variable lower limit
     __MaxDomain = __Function.domain[1] # variable upper limit
+    #__Bounds = np.array(__Function.domain) * __Dimension
+    __Bounds = __Function.domain
     __Beta = 1.5 # parameter for Levy flight
-    __Dimension = 10 # The number of dimension
     __Show_Plots = False
     __Iteration = 2
-    __Agents = 512
+    __Agents = 16
     __ScaleStep = 1
+    
+    @classmethod
+    def get_bounds(cls):
+        return cls.__Bounds
     
     @classmethod
     def get_n_agents(cls):

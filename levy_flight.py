@@ -26,7 +26,7 @@ def levy_flight_steps(beta, n=100000, m=2):
     return z
 
 def levy_flight(function=fn.hart3, dim=3, start_coordinates=[0.5,0.5,0.5], iterations=3, 
-                bounds=[0, 1],scale_step = 0.1, show_plots=False, beta=1.5):
+                bounds=[0, 1],scale_step = 0.1, show_plots=False, beta=1.5, best_f = 3):
     n = iterations;
     coordinates = []
     for i in range(dim):
@@ -37,7 +37,7 @@ def levy_flight(function=fn.hart3, dim=3, start_coordinates=[0.5,0.5,0.5], itera
     #call levy steps
     d = levy_flight_steps(beta=beta, n=iterations, m=dim) 
     # set minimum
-    minimum = function(start_coordinates)
+    minimum = best_f
     best_point = start_coordinates
     
     f_points = [minimum]
@@ -48,8 +48,9 @@ def levy_flight(function=fn.hart3, dim=3, start_coordinates=[0.5,0.5,0.5], itera
         temp_scale_step = scale_step
         # set next step without careing if it is out of bounds
         for j in range(dim):
-            coordinates[j][i] = coordinates[j][i-1]+d[val_i+j]*scale_step
-            coordinates_bound_check.append(bounds[0]<coordinates[j][i-1]+d[val_i+j]*scale_step<bounds[1])
+            next_point = coordinates[j][i-1]+d[val_i+j]*scale_step
+            coordinates[j][i] = next_point
+            coordinates_bound_check.append(bounds[j][0]<next_point<bounds[j][1])
         # take care of the out of bound coordinates    
         while not all(coordinates_bound_check): 
             #decrease temp_scale_step by 10%
@@ -58,7 +59,7 @@ def levy_flight(function=fn.hart3, dim=3, start_coordinates=[0.5,0.5,0.5], itera
             for j in range(dim):
                 if not coordinates_bound_check[j]:
                     coordinates[j][i] = coordinates[j][i-1]+d[val_i+j]*temp_scale_step
-                    coordinates_bound_check[j] = bounds[0]< coordinates[j][i] <bounds[1]       
+                    coordinates_bound_check[j] = bounds[j][0]< coordinates[j][i] <bounds[j][1]       
         val_i = val_i + 2
         
         #check if current point is better than current minimum 
@@ -82,5 +83,7 @@ def levy_flight(function=fn.hart3, dim=3, start_coordinates=[0.5,0.5,0.5], itera
         #pylab.savefig("Levi-Flight"+str(n)+".png",bbox_inches="tight",dpi=600)
         pylab.show()    
     return result    
-
-#levy_flight(function=fn.goldstein, start_coordinates=[0,0], iterations=3, bounds=[-2, 2], show_plots=True, dim=2)
+'''
+levy_flight(function=fn.goldstein, start_coordinates=[0,0], iterations=5, bounds=[[-2, 2],[-2, 2]], 
+            show_plots=True, dim=2, best_f = 600, scale_step = 1)
+'''

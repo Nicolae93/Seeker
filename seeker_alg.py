@@ -9,8 +9,8 @@ import time
 def seeker_algorithm():
     # configurations
     function = cf.get_function()
-    min_domain = cf.get_min_domain()
-    max_domain = cf.get_max_domain()
+    #min_domain = cf.get_min_domain()
+    #max_domain = cf.get_max_domain()
     show_plots = cf.get_show_plots()
     n = cf.get_iteration()
     n_agents = cf.get_n_agents()
@@ -20,10 +20,11 @@ def seeker_algorithm():
     global_min = cf.get_global_min()
     #creating two array for containing x and y coordinate
     #of size equals to the number of size and filled up with 0's
-    x = np.zeros(n_agents)
-    y = np.zeros(n_agents)
+    if show_plots:
+        x = np.zeros(n_agents)
+        y = np.zeros(n_agents)
     #BOUNDS 
-    bounds = [min_domain, max_domain]
+    bounds = cf.get_bounds()
     #initial evaluation
     feval = n_agents
     agents = []                 
@@ -31,7 +32,8 @@ def seeker_algorithm():
     def print_info():
         for a in agents:
             print(a.get_id(),a.get_best_fitness(),a.get_best_position())
-            
+        print()    
+        
     def sort_agents():
         agents.sort(key=lambda x: x.get_best_fitness())
     
@@ -49,6 +51,23 @@ def seeker_algorithm():
         #pylab.savefig("Pure_Random_Search"+str(n)+".png",bbox_inches="tight",dpi=600)
         pylab.show() 
     
+    def reduce_domain(coordinates,reduction,bounds1):
+        for i in range(dim):
+            # window size
+            max_domain = bounds1[i][1] 
+            min_domain = bounds1[i][0]
+            r_size = (np.abs(max_domain-min_domain) * reduction) * 0.5
+            print('r_size',r_size)
+            # modify bounds
+            if coordinates[i]-r_size < bounds1[i][0]:
+                bounds1[i][0] = bounds1[i][0]
+            else: bounds1[i][0] = coordinates[i]-r_size   
+            if coordinates[i]+r_size > bounds1[i][1]:
+                bounds1[i][1] = bounds1[i][1]    
+            else: bounds1[i][1] = coordinates[i]+r_size 
+        print('bounds',bounds1)
+        return bounds1
+    
     #random distribution on fitness function
     for i in range(n_agents):
         a = agent.Agent(function=function,bounds=bounds,my_id=i,dim=dim)
@@ -59,6 +78,7 @@ def seeker_algorithm():
     sort_agents()
     
     #print_info()
+    #print(agents[0].get_id(),agents[0].get_best_fitness(),agents[0].get_best_position())
     
     #plot
     if show_plots: 
@@ -67,19 +87,23 @@ def seeker_algorithm():
     count = 0    
     success = False
     n_factors = number_factors(n_agents)
+    n_steps = 0
     #seek algorithm
     while feval < 200000:         
         for i in range(n_agents):
             #diversification
             if count < n_factors:
-                feval += n+10
+                feval += n + n_steps - 1
                 result = lf.levy_flight(function=function, start_coordinates=agents[i].get_best_position(),
-                           iterations=n+10,bounds=bounds,show_plots=False, scale_step=scale_step, beta=beta,dim=dim)
+                                        iterations=n+n_steps,bounds=bounds,show_plots=False, scale_step=scale_step, beta=beta,dim=dim,
+                                        best_f=agents[i].get_best_fitness())      
             #intersification    
             else:   
-                feval += n
+                n_steps = 0
+                feval += n + n_steps - 1
                 result = lf.levy_flight(function=function, start_coordinates=agents[i].get_best_position(),
-                               iterations=n,bounds=bounds,show_plots=False, scale_step=scale_step, beta=beta,dim=dim)
+                                        iterations=n+n_steps,bounds=bounds,show_plots=False, scale_step=scale_step, beta=beta,dim=dim, 
+                                        best_f=agents[i].get_best_fitness())
             
             if result.fun < agents[i].get_best_fitness(): # if there are some improvements in the levy walk, update
                 # update best fitness
@@ -111,8 +135,33 @@ def seeker_algorithm():
         #decrease scale_step by 10%
         scale_step = scale_step - scale_step*0.1
         
+
+        
+        #reduce domain
+        prob = np.random.randint(10)
+        if prob == 1 and count<0:  
+            scale_step = cf.get_scale_step()
+            print(agents[0].get_id(),agents[0].get_best_fitness(),agents[0].get_best_position(),count)
+            bounds = reduce_domain(agents[0].get_best_position(),0.5,bounds)
+            
+            #random distribution on fitness function, refill agents in restricted domain
+            for i in range(1,n_agents):
+                feval += n_agents-1
+                # update best point
+                initial_position = []
+                for j in range(dim):
+                    initial_position.append(np.random.uniform(low=bounds[j][0],high=bounds[j][1]))
+                agents[i].set_best_position(initial_position)
+                # update best fitness
+                agents[i].set_best_fitness(function(agents[i].get_best_position()))
+                #plotting stuff
+                if show_plots:
+                    x[i],y[i] = a.get_initial_position()[0], a.get_initial_position()[1]            
+            sort_agents()
+        
+           
         #plot
-        if show_plots: 
+        if show_plots:  
             plots()  
         
         if success:
@@ -126,7 +175,7 @@ def seeker_algorithm():
     print('total feval: ',feval)
     print('global min: ',global_min)
     print('x         : ',function.x)
-    
+    print()
     return [feval, success]
       
 
@@ -137,10 +186,10 @@ class myThread (threading.Thread):
    def run(self):
       #print("Starting " + self.name)
       global s       
-      #start alg
-      seek = seeker_algorithm()
       # Get lock to synchronize threads
       threadLock.acquire()
+      seek = seeker_algorithm()
+      #start alg
       feval = seek[0]
       fitness_list.append(feval)
       if seek[1]:
@@ -149,7 +198,7 @@ class myThread (threading.Thread):
           
       # Free lock to release next thread
       threadLock.release()    
-      print()    
+      #print()    
         
 start_time = time.time()      
 threadLock = threading.Lock()
@@ -157,7 +206,7 @@ threads = []
 s = 0 
 fitness_list = []
 
-t = 10
+t = 1
 for i in range(t):
     # Create new threads
     thread = myThread(i)

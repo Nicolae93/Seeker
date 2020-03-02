@@ -26,11 +26,11 @@ def levy_flight_steps(beta, n=100000, m=2):
 
 
 class Agent:
-    def __init__(self,function=fn.eggholder,bounds=[-512, 512],my_id=1,dim=2):
+    def __init__(self,function=fn.eggholder,bounds=[[-512, 512],[-512, 512]],my_id=1,dim=2):
         self.__id = my_id
         self.__initial_position = []
         for i in range(dim):
-            self.__initial_position.append(np.random.uniform(low=bounds[0],high=bounds[1])) 
+            self.__initial_position.append(np.random.uniform(low=bounds[i][0],high=bounds[i][1]))
         self.__initial_fitness = function(self.__initial_position)
         self.__bestPosition = self.__initial_position
         self.__bestFitness = self.__initial_fitness
