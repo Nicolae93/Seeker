@@ -1,17 +1,17 @@
 import functions as fn
 
 class Config:
-    __Function = fn.goldstein
-    __Dimension = 2 # The number of dimension
+    __Function = fn.hart3
+    __Dimension = 3 # The number of dimension
     __GlobalMin = __Function.min
     __MinDomain = __Function.domain[0] # variable lower limit
     __MaxDomain = __Function.domain[1] # variable upper limit
     #__Bounds = np.array(__Function.domain) * __Dimension
     __Bounds = __Function.domain
-    __Beta = 1.5 # parameter for Levy flight
+    __Beta = 1.4 # parameter for Levy flight
     __Show_Plots = False
     __Iteration = 2
-    __Agents = 16
+    __Agents = 1
     __ScaleStep = 1
     
     @classmethod

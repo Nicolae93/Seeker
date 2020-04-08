@@ -27,6 +27,7 @@ def levy_flight_steps(beta, n=100000, m=2):
 
 def levy_flight(function=fn.hart3, dim=3, start_coordinates=[0.5,0.5,0.5], iterations=3, 
                 bounds=[0, 1],scale_step = 0.1, show_plots=False, beta=1.5, best_f = 3):
+    feval = 0
     n = iterations;
     coordinates = []
     for i in range(dim):
@@ -36,45 +37,56 @@ def levy_flight(function=fn.hart3, dim=3, start_coordinates=[0.5,0.5,0.5], itera
 
     #call levy steps
     d = levy_flight_steps(beta=beta, n=iterations, m=dim) 
+    #print(d*scale_step)
     # set minimum
     minimum = best_f
     best_point = start_coordinates
     
     f_points = [minimum]
     val_i = 0
+    flag = True
     
-    for i in range(1,n): # use those steps 
-        coordinates_bound_check = []
-        temp_scale_step = scale_step
-        # set next step without careing if it is out of bounds
-        for j in range(dim):
-            next_point = coordinates[j][i-1]+d[val_i+j]*scale_step
-            coordinates[j][i] = next_point
-            coordinates_bound_check.append(bounds[j][0]<next_point<bounds[j][1])
-        # take care of the out of bound coordinates    
-        while not all(coordinates_bound_check): 
-            #decrease temp_scale_step by 10%
-            temp_scale_step = temp_scale_step - temp_scale_step*0.1
-            # if the step is too long try to make a smaller step
+    while flag:
+        for i in range(1,n): # use those steps 
+            coordinates_bound_check = []
+            temp_scale_step = scale_step
+            # set next step without careing if it is out of bounds
             for j in range(dim):
-                if not coordinates_bound_check[j]:
-                    coordinates[j][i] = coordinates[j][i-1]+d[val_i+j]*temp_scale_step
-                    coordinates_bound_check[j] = bounds[j][0]< coordinates[j][i] <bounds[j][1]       
-        val_i = val_i + 2
+                next_point = coordinates[j][i-1]+d[val_i+j]*scale_step
+                coordinates[j][i] = next_point
+                coordinates_bound_check.append(bounds[j][0]<next_point<bounds[j][1])
+            # take care of the out of bound coordinates    
+            while not all(coordinates_bound_check): 
+                #decrease temp_scale_step by 10%
+                temp_scale_step = temp_scale_step - temp_scale_step*0.1
+                # if the step is too long try to make a smaller step
+                for j in range(dim):
+                    if not coordinates_bound_check[j]:
+                        coordinates[j][i] = coordinates[j][i-1]+d[val_i+j]*temp_scale_step
+                        coordinates_bound_check[j] = bounds[j][0]< coordinates[j][i] <bounds[j][1]       
+                            
+            #check if current point is better than current minimum 
+            curr_point = []
+            for j in range(dim):
+                curr_point.append(coordinates[j][i])
+            f_curr_point = function(curr_point)
+            #print(f_curr_point)
+            if f_curr_point < minimum:
+                #print(feval, f_curr_point)
+                f_points.append(f_curr_point)
+                minimum = f_curr_point
+                best_point = curr_point  
+                scale_step = scale_step + scale_step*0.5
+                #feval_levy_while_improve += 1
+                #flag = False   
+                feval += 1
+            else: 
+                flag = False   
+                val_i = val_i + 2
         
-        #check if current point is better than current minimum 
-        curr_point = []
-        for j in range(dim):
-            curr_point.append(coordinates[j][i])
-        f_curr_point = function(curr_point)
-        if  f_curr_point <= minimum:
-            f_points.append(f_curr_point)
-            minimum = f_curr_point
-            best_point = curr_point    
-            
     f_points.append(f_points[-1])
     #create an optResult object
-    result = optimize.OptimizeResult(x=best_point,fun=minimum,f_points=f_points)    
+    result = optimize.OptimizeResult(x=best_point,fun=minimum,f_points=f_points, feval=feval)    
     #print('true iterations: ', count)
     if show_plots:
         # plotting stuff:
@@ -82,8 +94,14 @@ def levy_flight(function=fn.hart3, dim=3, start_coordinates=[0.5,0.5,0.5], itera
         pylab.plot(coordinates[0],coordinates[1],'-',lw=0.5)
         #pylab.savefig("Levi-Flight"+str(n)+".png",bbox_inches="tight",dpi=600)
         pylab.show()    
-    return result    
+    #feval_levy_while_improve = 0   
+    return result#, feval_levy_while_improve    
 '''
-levy_flight(function=fn.goldstein, start_coordinates=[0,0], iterations=5, bounds=[[-2, 2],[-2, 2]], 
-            show_plots=True, dim=2, best_f = 600, scale_step = 1)
+levy_flight(function=fn.goldstein, start_coordinates=[0,0], iterations=10, bounds=[[-2, 2],[-2, 2]], 
+            show_plots=True, dim=2, best_f = 600, scale_step = .1, beta=1.5)
 '''
+'''
+levy_flight(function=fn.eggholder, start_coordinates=[0,0], iterations=10, bounds=[[-512,512],[-512,512]], 
+            show_plots=True, dim=2, best_f = -25.46033718528632, scale_step = 10, beta=1.5)
+'''
+

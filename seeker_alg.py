@@ -51,13 +51,18 @@ def seeker_algorithm():
         #pylab.savefig("Pure_Random_Search"+str(n)+".png",bbox_inches="tight",dpi=600)
         pylab.show() 
     
-    def reduce_domain(coordinates,reduction,bounds1):
+    def reduce_domain(coordinates,reduction,current_bounds):
+        bounds1 = current_bounds.copy()
         for i in range(dim):
             # window size
             max_domain = bounds1[i][1] 
             min_domain = bounds1[i][0]
-            r_size = (np.abs(max_domain-min_domain) * reduction) * 0.5
-            print('r_size',r_size)
+            # check if it is too small
+            if abs(max_domain-min_domain) < 0.1:
+                print('Too small')
+                return current_bounds
+            r_size = (np.abs(max_domain-min_domain) * reduction) / 2
+            #print('r_size',r_size)
             # modify bounds
             if coordinates[i]-r_size < bounds1[i][0]:
                 bounds1[i][0] = bounds1[i][0]
@@ -65,7 +70,7 @@ def seeker_algorithm():
             if coordinates[i]+r_size > bounds1[i][1]:
                 bounds1[i][1] = bounds1[i][1]    
             else: bounds1[i][1] = coordinates[i]+r_size 
-        print('bounds',bounds1)
+        #print('bounds',bounds1)
         return bounds1
     
     #random distribution on fitness function
@@ -86,25 +91,22 @@ def seeker_algorithm():
    
     count = 0    
     success = False
-    n_factors = number_factors(n_agents)
-    n_steps = 0
+    #n_factors = number_factors(n_agents)
+    n_steps = 0 # per controllare gli steps nel caso volessi fare più passi levy in futuro
     #seek algorithm
+    
+    prob_number = 100
+    
     while feval < 200000:         
         for i in range(n_agents):
-            #diversification
-            if count < n_factors:
-                feval += n + n_steps - 1
-                result = lf.levy_flight(function=function, start_coordinates=agents[i].get_best_position(),
+            #diversification            
+            result = lf.levy_flight(function=function, start_coordinates=agents[i].get_best_position(),
                                         iterations=n+n_steps,bounds=bounds,show_plots=False, scale_step=scale_step, beta=beta,dim=dim,
-                                        best_f=agents[i].get_best_fitness())      
-            #intersification    
-            else:   
-                n_steps = 0
-                feval += n + n_steps - 1
-                result = lf.levy_flight(function=function, start_coordinates=agents[i].get_best_position(),
-                                        iterations=n+n_steps,bounds=bounds,show_plots=False, scale_step=scale_step, beta=beta,dim=dim, 
-                                        best_f=agents[i].get_best_fitness())
-            
+                                        best_f=agents[0].get_best_fitness()) 
+            #if result.feval!=0:
+                #print(result.feval, agents[0].get_best_fitness())
+                
+            feval += n + n_steps - 1 + result.feval
             if result.fun < agents[i].get_best_fitness(): # if there are some improvements in the levy walk, update
                 # update best fitness
                 agents[i].set_best_fitness(result.fun)
@@ -120,6 +122,21 @@ def seeker_algorithm():
                 break
         sort_agents() 
         
+        #reduce n steps
+        n_steps = int(n_steps - n_steps * 0.5)
+        
+        #decrease scale_step by 10%
+        #print(scale_step)
+        if scale_step > 0.00001:
+            scale_step = scale_step - scale_step*0.1
+            
+        
+        #change position for help
+        for i in range(1, len(agents)):
+                agents[(i)].set_best_position(agents[0].get_best_position()) 
+                agents[(i)].set_best_fitness(agents[0].get_best_fitness()) 
+        
+        '''        
         #change position for help
         if count < n_factors:
             #change position for help
@@ -131,34 +148,46 @@ def seeker_algorithm():
             for i in range(1, len(agents)):
                 agents[(i)].set_best_position(agents[0].get_best_position()) 
                 agents[(i)].set_best_fitness(agents[0].get_best_fitness())   
-
-        #decrease scale_step by 10%
-        scale_step = scale_step - scale_step*0.1
+        '''        
         
-
-        
-        #reduce domain
-        prob = np.random.randint(10)
-        if prob == 1 and count<0:  
-            scale_step = cf.get_scale_step()
-            print(agents[0].get_id(),agents[0].get_best_fitness(),agents[0].get_best_position(),count)
-            bounds = reduce_domain(agents[0].get_best_position(),0.5,bounds)
+        # Compute probability to allow diversification        
+        prob = np.random.randint(prob_number)
             
-            #random distribution on fitness function, refill agents in restricted domain
-            for i in range(1,n_agents):
-                feval += n_agents-1
-                # update best point
+        if prob == 1:  
+            #prob_number += 1
+            #print(prob_number)
+            scale_step = cf.get_scale_step()
+            #print(feval,agents[0].get_id(),agents[0].get_best_fitness())#,agents[0].get_best_position())
+            '''
+            prob = np.random.randint(100)
+            if prob == 1:  
+                print('reduction!')
+                reduct = 0.5
+                #reduct = 1-np.finfo(np.float64).eps
+                #print(reduct)
+                bounds = reduce_domain(agents[0].get_best_position(),reduct,bounds)
+            '''
+            
+            if n_agents > 1:
+                #random distribution on fitness function, refill agents in restricted domain
+                for i in range(1,n_agents):
+                    # update best point
+                    initial_position = []
+                    for j in range(dim):
+                        initial_position.append(np.random.uniform(low=bounds[j][0],high=bounds[j][1]))
+                    feval += n_agents-1                    
+                    agents[i].set_best_position(initial_position)
+                    agents[i].set_best_fitness(function(agents[i].get_best_position()))
+                sort_agents()
+            else:
                 initial_position = []
                 for j in range(dim):
                     initial_position.append(np.random.uniform(low=bounds[j][0],high=bounds[j][1]))
-                agents[i].set_best_position(initial_position)
-                # update best fitness
-                agents[i].set_best_fitness(function(agents[i].get_best_position()))
-                #plotting stuff
-                if show_plots:
-                    x[i],y[i] = a.get_initial_position()[0], a.get_initial_position()[1]            
-            sort_agents()
-        
+                feval += 1
+                current_fun = function(initial_position)
+                if current_fun < agents[0].get_best_fitness():
+                    agents[0].set_best_position(initial_position)
+                    agents[0].set_best_fitness(current_fun)
            
         #plot
         if show_plots:  
@@ -169,12 +198,11 @@ def seeker_algorithm():
         #update count
         count += 1   
     
-    print('groupings ',n_factors)
-    print('count     ',count)    
-    print(agents[0].get_best_fitness(),agents[0].get_best_position())  
-    print('total feval: ',feval)
+  
+    print(agents[0].get_best_fitness())#,agents[0].get_best_position())  
+    print('total FEVAL: ',feval)
     print('global min: ',global_min)
-    print('x         : ',function.x)
+    #print('x         : ',function.x)
     print()
     return [feval, success]
       
@@ -206,7 +234,7 @@ threads = []
 s = 0 
 fitness_list = []
 
-t = 1
+t = 30
 for i in range(t):
     # Create new threads
     thread = myThread(i)
@@ -221,5 +249,6 @@ for th in threads:
 #print("Exiting Main Thread\n")          
     
 print('\nmean feval ',np.mean(fitness_list))   
+print('standard deviation ',int(np.std(fitness_list)))
 print('percentage success '+str((s/t)*100)+'%')
 print("--- %s seconds ---" % (time.time() - start_time))
