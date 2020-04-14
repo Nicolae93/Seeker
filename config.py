@@ -1,18 +1,33 @@
 import functions as fn
+from numpy import abs
 
+# goldstein, eggholder, michalewicz, schwefel, hart3, sphere, rastrigin, rosen, zakharov
 class Config:
-    __Function = fn.hart3
-    __Dimension = 3 # The number of dimension
+    __Function = fn.rastrigin
+    __Dimension = 10 # The number of dimension
     __GlobalMin = __Function.min
     __MinDomain = __Function.domain[0] # variable lower limit
     __MaxDomain = __Function.domain[1] # variable upper limit
-    #__Bounds = np.array(__Function.domain) * __Dimension
     __Bounds = __Function.domain
     __Beta = 1.4 # parameter for Levy flight
     __Show_Plots = False
+    __Plot_3D_Func = False
     __Iteration = 2
     __Agents = 1
-    __ScaleStep = 1
+    __ScaleStep = (abs(__Bounds[0][0])+abs(__Bounds[0][1]))
+    
+    print('------------------------------')
+    print('function:',__Function.__name__)
+    print('dimension:',__Dimension)
+    print('bounds:',__Bounds[0])
+    print('beta:',__Beta)
+    print('iterations:',__Iteration)
+    print('scale step:',__ScaleStep)
+    print()
+    
+    @classmethod
+    def get_plot_3d_func(cls):
+        return cls.__Plot_3D_Func
     
     @classmethod
     def get_bounds(cls):
